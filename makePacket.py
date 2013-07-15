@@ -26,6 +26,8 @@ class Packet:
     def __str__(self):
         # data = self.destuffing(self.data)
         data = self.data
+        if isinstance(data, bytes):
+            data = str(data)
 
         return "Data: " + data + "\n" + "Seq No: " + str(self.sequence_no)
 
@@ -71,8 +73,9 @@ class Packet:
         """
         sequence_number = bytes("{:04}".format(self.sequence_no), 'utf-8')
         data_length = bytes("{:04}".format(len(self)), 'utf-8')
-        print("###", sequence_number, data_length)
-        data = bytes(self.data, 'utf-8')
+        # print("###", sequence_number, data_length)
+        # data = bytes(self.data, 'utf-8')
+        data = self.data
 
         tmp = data_length + sequence_number +  data
         hash = self.hasher(tmp)
@@ -89,11 +92,11 @@ class Packet:
         # print(">>>", packet)
 
         hash = packet[:16]
-        print('hash', hash)
+        # print('hash', hash)
 
         rest_of_stuff = packet[16:]
         re_hash = Packet.hasher(rest_of_stuff)
-        print('re_hash', re_hash)
+        # print('re_hash', re_hash)
 
         if hash != re_hash:
             return None
@@ -105,11 +108,12 @@ class Packet:
 
         #sequence number encoded with ntohs to its 4byte long
         sequence_no = int(sequence_no)
-        print("sequence_no in host int:", sequence_no)
+        # print("sequence_no in host int:", sequence_no)
 
         #data length encoded with socket.htons() to its a short; that is 4bytes
         data_length = int(data_length)
-        print("data length (hot int):", data_length)
+        # print("data length (hot int):", data_length)
 
-        new_packet = cls(data.decode(), sequence_no)
+        # new_packet = cls(data.decode(), sequence_no)
+        new_packet = cls(data, sequence_no)
         return new_packet
