@@ -2,7 +2,10 @@ __author__ = 'Roshan'
 
 import hashlib
 
-PACKET_SIZE = 512
+import Sender
+
+PACKET_SIZE = 100
+MAX_SEQUENCE_NUMBER = 8
 DELIMINATOR = 0b10101011
 
 class Packet:
@@ -15,10 +18,12 @@ class Packet:
         # new_data = self.stuffing(data)
         new_data = data
 
-        if sequence_no > PACKET_SIZE: # I know this doesnt make much sense
-            raise ValueError("Sequence Number must be smaller than 9999 but {} is given".format(sequence_no))
+        if sequence_no >= MAX_SEQUENCE_NUMBER:
+            raise ValueError("Sequence Number must be smaller than {} but {} is given"
+            .format(MAX_SEQUENCE_NUMBER, sequence_no))
         if len(new_data) > PACKET_SIZE:
-            raise ValueError("Data length (with stuffing) should be less than of 9999  but {} is given".format(len(new_data)))
+            raise ValueError("Data length should be less than of {}  but {} is given"
+            .format(PACKET_SIZE, len(new_data)))
 
         self.data = new_data
         self.sequence_no = sequence_no
@@ -33,27 +38,6 @@ class Packet:
 
     def __len__(self):
         return len(self.data)
-
-    # @staticmethod
-    # def stuffing(data):
-    #     new_data = ""
-    #     for i in data:
-    #         if i == chr(DELIMINATOR):
-    #             i += chr(DELIMINATOR)
-    #         new_data += i
-    #     return new_data
-
-    # @staticmethod
-    # def destuffing(stuffed):
-    #     j = ''
-    #     data = ''
-    #     for i in stuffed:
-    #         if i == chr(DELIMINATOR):
-    #             if j == chr(DELIMINATOR):
-    #                 continue
-    #             j = i
-    #         data += i
-    #     return data
 
     def extract_data(self):
         # return "".join(i for i in self.data if ord(i) != 0)
@@ -89,8 +73,6 @@ class Packet:
          otherwise it returns new packet object
         """
 
-        # print(">>>", packet)
-
         hash = packet[:16]
         # print('hash', hash)
 
@@ -104,15 +86,10 @@ class Packet:
         data_length = packet[16:20]
         sequence_no = packet[20:24]
         data = packet[24:]
-        #print("-------------", data_length, sequence_no, data)
 
         #sequence number encoded with ntohs to its 4byte long
         sequence_no = int(sequence_no)
         # print("sequence_no in host int:", sequence_no)
-
-        #data length encoded with socket.htons() to its a short; that is 4bytes
-        data_length = int(data_length)
-        # print("data length (hot int):", data_length)
 
         # new_packet = cls(data.decode(), sequence_no)
         new_packet = cls(data, sequence_no)

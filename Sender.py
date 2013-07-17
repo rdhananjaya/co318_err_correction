@@ -1,11 +1,12 @@
 __author__ = 'Roshan'
 import socket
-import _thread
+
 
 import  makePacket
 
 PKT_SIZE = 100
-WINDOW_SIZE = 8
+WINDOW_SIZE = 5
+BUFSIZ = 256
 
 class Sender:
 
@@ -26,27 +27,59 @@ class Sender:
         self._send(data)
         # data, addr = self.sock.recvfrom(1024)
 
+
     def _send(self, data):
 
-        data_len = len(data)
 
-        packet_num = 0
-        for i in range(0, data_len, PKT_SIZE):
-            data_chunk = data[i:i+PKT_SIZE]
-
-            #make packets with the data_chunks
-
-            pkt = makePacket.Packet(data_chunk, packet_num)
-            serial_pkt = pkt.serialize()
+        data = [ i for i in zip(self._get_sequence_number(), self._data_chunk(data))]
 
 
-            i = self.sock.sendto(serial_pkt, self.address)
-            packet_num += 1
-            print(packet_num, ": ", "send: ", i)
+        index = 0
+        while index <= len(data):
+            current_frame_set = data[index: index+WINDOW_SIZE]
+
+            for data_chunk in current_frame_set:
+                pkt = makePacket.Packet(data_chunk[1], data_chunk[0])
+                serial_pkt = pkt.serialize()
+                print("PKT:", pkt.sequence_no, end=" ")
+                i = self.sock.sendto(serial_pkt, self.address)
+                print("PKT:", pkt.sequence_no, "sent", i, "bytes")
+
+            ack = self._receive_ack()
+            ack = ack.decode()
+
+            if ack[-3:] == "END":
+                break
+
+            if ack[:2] == "RR":
+                index += WINDOW_SIZE
+            else:
+                index += int(ack[-1])
+
+            # print("INDEX", index)
+
+
+    def _data_chunk(self, data):
+        for i in range(0, len(data), makePacket.PACKET_SIZE):
+            yield data[i:i+makePacket.PACKET_SIZE]
+
+    @staticmethod
+    def _get_sequence_number():
+        seq = 0
+        while True:
+            yield seq
+
+            seq += 1
+            if seq >= makePacket.MAX_SEQUENCE_NUMBER:
+                seq = 0
+
+
 
     def _receive_ack(self):
-        data, addr = self.sock.recvfrom(self.BUFSIZ)
-        print("_receive_ack:", data, "from", addr)
+        data, addr = self.sock.recvfrom(BUFSIZ)
+        print("_received_ack:", data, "from", addr)
+
+        return data
 
 
 

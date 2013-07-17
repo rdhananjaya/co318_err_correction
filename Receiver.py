@@ -7,7 +7,7 @@ import makePacket
 
 class Receive:
 
-    BUFSIZ = 1024
+    BUFSIZ = 256
 
     def __init__(self, ip, port):
         self.address = (ip, port)
@@ -19,41 +19,64 @@ class Receive:
         data_collection = []
         packet_collection = []
         for i in range(Sender.WINDOW_SIZE):
+            print("RECEIVING:", i, end=" ")
             data, addr = self.sock.recvfrom(self.BUFSIZ)
-            # print("\n------------------------------------------\n"
-            #       "Received:", data, "from:", addr)
+            print("RECEIVED:", i, end=" ")
             data_collection.append(data)
-            packet_collection.append(makePacket.Packet.de_serialize(data))
-
-        packet_collection.sort(key = lambda x: x.sequence_no)
-
-        old_sq = 0
-        for i in packet_collection:
-            sq = i.sequence_no
-            if sq > old_sq + 1:
-                # err
+            tmp_pkt = makePacket.Packet.de_serialize(data)
+            print("PKT SEQ NO: ", tmp_pkt.sequence_no)
+            packet_collection.append(tmp_pkt)
+            if tmp_pkt is not None and len(tmp_pkt) != makePacket.PACKET_SIZE:
                 break
-            old_sq = sq
+
+        #Assuming packets will not arrive out of order
+        # If want to to remove above assumption we will have to sort the packet list
+        # accordingly and its hard to do so
+        # packet_collection.sort() won't cut it !
+
+        counter = 0
+        sq = -1
+        end = False # indicate end of receiving
+        for i in packet_collection:
+                ## packet with corrupt data will have wrong hash code
+                ## hence de_serialize will return None
+                ## lets catch the none here
+                if i is None:
+                    break
+                sq = i.sequence_no
+                counter += 1
+                if len(i) < makePacket.PACKET_SIZE:
+                    end =  True
 
         ACK = ""
 
-        #WINDOW_SIZE - 1 coz count starts from 0 so even it counts WINDOW_SIZE
-        #times it only say WINDOW_SIZE - 1
-        if old_sq == Sender.WINDOW_SIZE - 1:
-            ACK = "RR-" + str(old_sq)
+        if end:
+            ACK = "RR-" + str(sq) + "-END"
+            print("END OF Receiving...")
+        elif counter == Sender.WINDOW_SIZE:
+            ACK = "RR-" + str((sq+1)%8)
         else:
-            ACK = "REJ-" + str(old_sq)
+            ACK = "REJ-" + str((sq+1)%8)
 
-        print("Sending ACK:", ACK)
-
+        print("## Sending ACK:", ACK, end=" ")
         self.sock.sendto(bytes(ACK, 'utf-8'), addr)
+        print("ACK send")
+
+        return not end #if sender is done with sending return false; otherwise return true
 
 
     def process_data(self, data_collection):
         pass
 
+    @staticmethod
+    def packet_sort(pkt):
+        sno = pkt.sequence_no
+
+
+
 
 
 if __name__ == '__main__':
     recv = Receive("127.0.0.1", 5000)
-    recv.receive()
+    while recv.receive():
+        pass
