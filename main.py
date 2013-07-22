@@ -24,10 +24,16 @@ import Sender
 # print(new_p.extract_data())
 # print(bytes(new_p.extract_data(), 'utf-8'))
 
-f = open("myfile.txt")
 
-sender = Sender.Sender("127.0.0.1", 5000)
-sender.send(bytes(f.read(), 'utf-8'))
+
+
+
+if __name__ == '__main__':
+
+    f = open("myfile.txt")
+
+    sender = Sender.Sender("127.0.0.1", 5000)
+    sender.send(bytes(f.read(), 'utf-8'))
 
 
 

@@ -41,7 +41,7 @@ class Sender:
             for data_chunk in current_frame_set:
                 pkt = makePacket.Packet(data_chunk[1], data_chunk[0])
                 serial_pkt = pkt.serialize()
-                print("PKT:", pkt.sequence_no, end=" ")
+                # print("PKT:", pkt.sequence_no, end=" ")
                 i = self.sock.sendto(serial_pkt, self.address)
                 print("PKT:", pkt.sequence_no, "sent", i, "bytes")
 

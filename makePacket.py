@@ -29,7 +29,6 @@ class Packet:
         self.sequence_no = sequence_no
 
     def __str__(self):
-        # data = self.destuffing(self.data)
         data = self.data
         if isinstance(data, bytes):
             data = str(data)
