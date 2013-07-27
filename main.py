@@ -1,39 +1,50 @@
 __author__ = 'Roshan '
 
-
 import socket
+import sys
 
 import makePacket
 import Sender
-
-
-
-# pac = makePacket.Packet("AAAAA\xabrrrrr", 1)
-#
-# print("pakect: ", pac)
-#
-# p = pac.serialize()
-#
-# # print(len(p))
-# # print(p)
-# # print()
-#
-# new_p = makePacket.Packet.de_serialize(p)
-#
-# print("pakcet: ", new_p)
-# print(new_p.extract_data())
-# print(bytes(new_p.extract_data(), 'utf-8'))
-
-
-
-
+import time
 
 if __name__ == '__main__':
 
-    f = open("myfile.txt")
+    if len(sys.argv) < 3:
+        print("\nUsage: \n\tpython main.py <error rate> <window size> ")
+        print("\terror rate  -- the percentage error rate this is from 0% to 100%")
+        print("\twindow size -- the size of the sliding window (this must be same in both sender and receiver)")
+        exit()
+    else:
+        try:
+            WINDOW_SIZE = int(sys.argv[2])
+            ERR_RATE = int(sys.argv[1])
+        except ValueError:
+            print("Arguments must be ints ")
+            exit()
 
-    sender = Sender.Sender("127.0.0.1", 5000)
-    sender.send(bytes(f.read(), 'utf-8'))
+    try:
+        f = open("myfile.txt")
+        result = open("result.txt", "a")
+    except IOError:
+        print("File Opening Error\nExiting...")
+        exit(-1)
+
+    sender = Sender.Sender("127.0.0.1", 5000, WINDOW_SIZE)
+    data_from_file = f.read()
+    print("Sending {} bytes of data ".format(len(data_from_file)))
+    time_1 = time.clock()
+    sender.send(bytes(data_from_file, 'utf-8'))
+    time_2 = time.clock()
+    print("\n\n====================================================================")
+    print("TIME spent: ", time_2 - time_1)
+    print("====================================================================\n")
+    sender.close()
+
+    time_diff = (time_2 - time_1)
+    mesurements = "window_size: {}, error_rate: {}, time_spent: {}, speed: {}\n".format(WINDOW_SIZE, ERR_RATE, time_diff, len(data_from_file)/time_diff)
+    result.write(mesurements)
+    result.close()
+
 
 
 
